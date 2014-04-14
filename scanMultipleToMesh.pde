@@ -139,25 +139,25 @@ void createScan(PVector[] depthPoints, boolean flip)
         int ne = (x + spacing) + y * 640;
         int sw = x + (y + spacing)*640;
         int se = (x + spacing) + (y + spacing)*640;        
-
+        
         model.addFace(new UVec3((int)depthPoints[nw].x,
                                 (int)depthPoints[nw].y,
-                                (int)depthPoints[nw].z-distance),      
+                                (int)depthPoints[nw].z),      
                       new UVec3((int)depthPoints[ne].x,
                                 (int)depthPoints[ne].y,
-                                (int)depthPoints[ne].z-distance),
+                                (int)depthPoints[ne].z),
                       new UVec3((int)depthPoints[sw].x,
                                 (int)depthPoints[sw].y,
-                                (int)depthPoints[sw].z-distance));
+                                (int)depthPoints[sw].z));
         model.addFace(new UVec3((int)depthPoints[ne].x,
                                 (int)depthPoints[ne].y,
-                                (int)depthPoints[ne].z-distance),      
+                                (int)depthPoints[ne].z),      
                       new UVec3((int)depthPoints[se].x,
                                 (int)depthPoints[se].y,
-                                (int)depthPoints[se].z-distance),
+                                (int)depthPoints[se].z),
                       new UVec3((int)depthPoints[sw].x,
                                 (int)depthPoints[sw].y,
-                                (int)depthPoints[sw].z-distance));
+                                (int)depthPoints[sw].z));
       
     }
   }
