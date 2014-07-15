@@ -16,19 +16,28 @@ public class scanMultipleToMesh extends PApplet {
 
 	boolean scanning = false;
 	int maxZ = 2000;
-	int spacing = 2;//Must be a factor of 640 or 480
+	int spacing = 1;//Must be a factor of 640 or 480
 	int margin = 0;
-	int distance = 1200;
+	int distance = 1130;//1061;
+	
+	int innerAngle = -27;
 	
 	int scanCount = 0;
+	int totalScanCount = 0;
 
 	int invalidZ = 99999;
+	int zDiffRange = 10;
 	
 	UGeometry model;
 	UVertexList vertexList;
 
+	int time;
+	int waitTime = 3000;
+	
 	public void setup()
 	{
+		time = millis();
+		
 	  size(320*2+10, 480, OPENGL);
 	  
 	  SimpleOpenNI.start();
@@ -84,12 +93,22 @@ public class scanMultipleToMesh extends PApplet {
 		  if(scanning)
 		  {
 			scanCount = 1;
+			
+			totalScanCount++;
 			  
 		    depthPoints = cropScan(depthPoints);
 		    depthPoints90 = cropScan(depthPoints90);
-	
-		    createScan(depthPoints, false);
-		    createScan(depthPoints90, true);
+		    
+		    if(totalScanCount%2 == 0)
+		    {
+			    createScan(depthPoints, false);
+			    createScan(depthPoints90, true);
+		    }
+		    else
+		    {
+			    createScan(depthPoints90, true);
+			    createScan(depthPoints, false);
+		    }
 			
 		    //Draw one point
 	        stroke(255);
@@ -103,12 +122,12 @@ public class scanMultipleToMesh extends PApplet {
 	  }
 	  else
 	  {
-	     kinect = new SimpleOpenNI(this);
+	     kinect = new SimpleOpenNI(0, this);
          kinect.enableDepth();
 		 kinect.enableRGB();
 		 kinect.alternativeViewPointDepthToImage();
          
-	     kinect2 = new SimpleOpenNI(this);
+	     kinect2 = new SimpleOpenNI(1, this);
          kinect2.enableDepth();
 		 kinect2.enableRGB();
 		 kinect2.alternativeViewPointDepthToImage();
@@ -200,7 +219,31 @@ public class scanMultipleToMesh extends PApplet {
 	        }
 	        else if(depthPoints[nw].z != invalidZ)
 	        {
-		        if(depthPoints[nw].z != invalidZ &&
+	        	/*
+	        	 * Make sure that all the z points are close enough togeather to make a nice surface
+	        	 */
+	        	boolean zValuesInRange = false;
+	        	float[] zPoints = new float[5];
+	        	zPoints[0] = depthPoints[nw].z;
+	        	zPoints[1] = depthPoints[ne].z;
+	        	zPoints[2] = depthPoints[sw].z;
+	        	zPoints[3] = depthPoints[se].z;
+	        	zPoints[4] = depthPoints[sw].z;
+	        	
+	        	for(int i = 0; i < 5; i++)
+	        	{
+	        		for(int k = i+1; k < 5; k++)
+	        		{
+	        			if(zPoints[i]-zPoints[k] < zDiffRange)
+	        			{
+	        				zValuesInRange = true;
+	        			}
+	        		}
+	        	}
+	        	
+		        if(
+		        zValuesInRange &&		
+		        depthPoints[nw].z != invalidZ &&
 		        depthPoints[ne].z != invalidZ &&
 		        depthPoints[sw].z != invalidZ &&
 		        depthPoints[se].z != invalidZ)
@@ -225,60 +268,26 @@ public class scanMultipleToMesh extends PApplet {
 		                                  (int)depthPoints[sw].y,
 		                                  (int)depthPoints[sw].z-distance));
 		        }
-		        else if(false)
-		        {
-		        	PVector[] innerDepthPoints = depthPoints;
-		        	
-		        	//Replace the depth value for 
-			        if(innerDepthPoints[nw].z == invalidZ)
-			        {
-			        	innerDepthPoints[nw].z = distance;
-			        }
-					if(innerDepthPoints[ne].z == invalidZ)
-					{
-						innerDepthPoints[ne].z = distance;						
-					}
-					if(innerDepthPoints[sw].z == invalidZ)
-					{
-						innerDepthPoints[sw].z = distance;
-					}
-					if(innerDepthPoints[se].z == invalidZ)
-					{
-						innerDepthPoints[se].z = distance;
-					}
-					
-					/*model.addFace(new UVec3((int)depthPoints[nw].x,
-                            				(int)depthPoints[nw].y,
-                            				(int)depthPoints[nw].z-distance),      
-                            	  new UVec3((int)depthPoints[ne].x,
-                            			  	(int)depthPoints[ne].y,
-                            			  	(int)depthPoints[ne].z-distance),
-                                  new UVec3((int)depthPoints[sw].x,
-                                		  	(int)depthPoints[sw].y,
-                                		  	(int)depthPoints[sw].z-distance));
-				    model.addFace(new UVec3((int)depthPoints[ne].x,
-				    						(int)depthPoints[ne].y,
-				    						(int)depthPoints[ne].z-distance),      
-				    			  new UVec3((int)depthPoints[se].x,
-				    					    (int)depthPoints[se].y,
-				    					    (int)depthPoints[se].z-distance),
-				    			  new UVec3((int)depthPoints[sw].x,
-				    					  	(int)depthPoints[sw].y,
-				    					  	(int)depthPoints[sw].z-distance));
-				   */
-		        }	
 	        }
 	    }
 	  }
 	  
+	    if(flip)
+	    {
 	      model.rotateY(radians(180));
+	      model.rotateX(radians(2*innerAngle));
+	    }
 	    //model.toOrigin();
 	    
 	    model.endShape();
 	    
-//	    SimpleDateFormat logFileFmt = new SimpleDateFormat("'scan_'yyyMMddHHmmss'.stl'");
-	    model.writeSTL(this, "this.stl");
+	    java.util.Date d = new java.util.Date();
 	    
+//	    SimpleDateFormat logFileFmt = new SimpleDateFormat("'scan_'yyyMMddHHmmss'.stl'");
+	    model.writeSTL(this, "this_" + d.getTime() +".stl");
+	    
+	    
+	    model.reset();
 	    scanning = false;
 	}
 	  
@@ -310,6 +319,11 @@ public class scanMultipleToMesh extends PApplet {
 	    }
 	    else if(key == ' ')
 	    {
+	    	time = millis();
+	    	while(millis() - time < waitTime)
+	    	{
+	    		println("Waiting "+ time + " " + millis());
+	    	}
 	      scanning = true;
 	    } 
 	}
